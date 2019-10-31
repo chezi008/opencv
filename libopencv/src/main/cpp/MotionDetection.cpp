@@ -15,14 +15,31 @@
 using namespace cv;
 #define MOTION_THRESH 10
 
-void processFrame(Mat curFrame);
+bool processFrame(Mat curFrame);
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_chezi008_libopencv_motiondetection_DetectionMotionTracker_nativeProcessFrame
-        (JNIEnv *jenv, jclass, jlong cur) {
+        (JNIEnv *env, jclass, jlong cur, jobject jcallback) {
     Mat *curVideoFrame = reinterpret_cast<Mat *>(cur);
-    processFrame(*curVideoFrame);
+    bool isDetection = processFrame(*curVideoFrame);
+    if (isDetection) {
+        //调用回调
+        jclass javaClass = env->GetObjectClass(jcallback);
+        if (javaClass == 0) {
+            LOGI("Unable to find class", "");
+            return;
+        }
+        //获取要回调的方法ID
+        jmethodID javaCallbackId = env->GetMethodID(javaClass, "motionDetection", "()V");
+        if (javaCallbackId == NULL) {
+            LOGD("Unable to find method:motionDetection", "");
+            return;
+        }
+        //执行回调
+        env->CallVoidMethod(jcallback, javaCallbackId);
+        env->DeleteLocalRef(javaClass);
+    }
 }
 
 Mat frameDiff(Mat prevFrame, Mat curFrame, Mat nextFrame) {
@@ -39,23 +56,24 @@ Mat frameDiff(Mat prevFrame, Mat curFrame, Mat nextFrame) {
 Mat preVideoFrame, curVideoFrame, nextVideoFrame;
 Mat dist, blurDist, threDist, meanDist, stdDist;
 
-void processFrame(Mat curFrame) {
+bool processFrame(Mat curFrame) {
+    bool isMotionDetection = false;
     if (preVideoFrame.empty()) {
         curFrame.copyTo(preVideoFrame);
         LOGI("processFrame preVideoFrame:---->", "");
-        return;
+        return isMotionDetection;
     }
     if (curVideoFrame.empty()) {
         curFrame.copyTo(curVideoFrame);
         LOGI("processFrame curVideoFrame:---->", "");
-        return;
+        return isMotionDetection;
     }
     curFrame.copyTo(nextVideoFrame);
 
     char text[100] = {0};
 
     if (!preVideoFrame.empty() && !curVideoFrame.empty() && !nextVideoFrame.empty()) {
-        LOGI("processFrame distMap:---->", "");
+//        LOGI("processFrame distMap:---->", "");
         //转换成灰度图
 //        cvtColor(nextVideoFrame, frame1, COLOR_BGR2GRAY);
         dist = frameDiff(preVideoFrame, curVideoFrame, nextVideoFrame);
@@ -72,11 +90,11 @@ void processFrame(Mat curFrame) {
                     1, (255, 0, 255), 1, LINE_AA);
 
         if (stdDist.at<uchar>(0, 0) > MOTION_THRESH) {
-            printf("%d motion detected\r", stdDist.at<uchar>(0, 0));
+//            printf("%d motion detected\r", stdDist.at<uchar>(0, 0));
             LOGI("%d motion detected\r", stdDist.at<uchar>(0, 0));
-            fflush(stdout);
+//            fflush(stdout);
+            isMotionDetection = true;
         }
-
 //        blurDist.copyTo(curFrame);
         curVideoFrame.copyTo(preVideoFrame);
         nextVideoFrame.copyTo(curVideoFrame);
@@ -84,6 +102,6 @@ void processFrame(Mat curFrame) {
         LOGI("processFrame empty:---->p:%d", preVideoFrame.empty());
     }
 
-
+    return isMotionDetection;
 }
 
