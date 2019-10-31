@@ -2,7 +2,6 @@
 // Created by chezi008 on 2019/10/25.
 //
 
-#include "include/MotionDetection.h"
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -16,6 +15,15 @@
 using namespace cv;
 #define MOTION_THRESH 10
 
+void processFrame(Mat curFrame);
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_chezi008_libopencv_motiondetection_DetectionMotionTracker_nativeProcessFrame
+        (JNIEnv *jenv, jclass, jlong cur) {
+    Mat *curVideoFrame = reinterpret_cast<Mat *>(cur);
+    processFrame(*curVideoFrame);
+}
 
 Mat frameDiff(Mat prevFrame, Mat curFrame, Mat nextFrame) {
     Mat diffFrames1, diffFrames2, output;
@@ -30,6 +38,7 @@ Mat frameDiff(Mat prevFrame, Mat curFrame, Mat nextFrame) {
 
 Mat preVideoFrame, curVideoFrame, nextVideoFrame;
 Mat dist, blurDist, threDist, meanDist, stdDist;
+
 void processFrame(Mat curFrame) {
     if (preVideoFrame.empty()) {
         curFrame.copyTo(preVideoFrame);
@@ -49,7 +58,7 @@ void processFrame(Mat curFrame) {
         LOGI("processFrame distMap:---->", "");
         //转换成灰度图
 //        cvtColor(nextVideoFrame, frame1, COLOR_BGR2GRAY);
-        dist =frameDiff(preVideoFrame,curVideoFrame, nextVideoFrame);
+        dist = frameDiff(preVideoFrame, curVideoFrame, nextVideoFrame);
 
         //降噪 3x3内核,均值滤波操作
         blur(dist, blurDist, Size(3, 3));
@@ -75,11 +84,6 @@ void processFrame(Mat curFrame) {
         LOGI("processFrame empty:---->p:%d", preVideoFrame.empty());
     }
 
-    extern "C"
-    JNIEXPORT void JNICALL Java_com_chezi008_libopencv_motiondetection_DetectionMotionTracker_nativeProcessFrame
-            (JNIEnv *jenv, jclass, jlong cur) {
-        Mat *curVideoFrame = reinterpret_cast<Mat *>(cur);
-        processFrame(*curVideoFrame);
-    }
+
 }
 

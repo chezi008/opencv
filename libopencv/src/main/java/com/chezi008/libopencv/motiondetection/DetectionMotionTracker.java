@@ -8,5 +8,5 @@ public class DetectionMotionTracker
     }
 
 
-    public static native void nativeProcessFrame(long cur);
+    public static native void nativeProcessFrame(long frame);
 }
