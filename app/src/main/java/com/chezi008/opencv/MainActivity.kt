@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() {
 
         btnCallback.setOnClickListener {
             DetectionMotionTracker.nativeProcessFrame(123L, DetectionCallback {
-                Log.d(TAG, "onCreate: jni callback------>")
+                Log.d(TAG, "onCreate: jni callback------>$it")
             })
         }
     }

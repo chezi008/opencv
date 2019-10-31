@@ -19,6 +19,11 @@ android {
                 cppFlags "-std=c++11"//-fexceptions
             }
         }
+        ndk {
+            //选择要添加的对应 cpu 类型的 .so 库。
+            abiFilters 'armeabi-v7a'
+            // 还可以添加 'x86', 'x86_64', 'mips', 'mips64','arm64-v8a'
+        }
     }
 
     buildTypes {
@@ -47,5 +52,6 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+    //
     api files('libs/opencv library - 3.4.3.jar')
 }

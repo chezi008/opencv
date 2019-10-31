@@ -15,29 +15,29 @@
 using namespace cv;
 #define MOTION_THRESH 10
 
-bool processFrame(Mat curFrame);
+int processFrame(Mat curFrame);
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_chezi008_libopencv_motiondetection_DetectionMotionTracker_nativeProcessFrame
         (JNIEnv *env, jclass, jlong cur, jobject jcallback) {
     Mat *curVideoFrame = reinterpret_cast<Mat *>(cur);
-    bool isDetection = processFrame(*curVideoFrame);
-    if (isDetection) {
+    int motionThresh = processFrame(*curVideoFrame);
+    if (motionThresh > 0) {
         //调用回调
         jclass javaClass = env->GetObjectClass(jcallback);
         if (javaClass == 0) {
-            LOGI("Unable to find class", "");
+            LOGI("Unable to find class");
             return;
         }
         //获取要回调的方法ID
-        jmethodID javaCallbackId = env->GetMethodID(javaClass, "motionDetection", "()V");
+        jmethodID javaCallbackId = env->GetMethodID(javaClass, "motionDetection", "(I)V");
         if (javaCallbackId == NULL) {
-            LOGD("Unable to find method:motionDetection", "");
+            LOGD("Unable to find method:motionDetection");
             return;
         }
         //执行回调
-        env->CallVoidMethod(jcallback, javaCallbackId);
+        env->CallVoidMethod(jcallback, javaCallbackId,motionThresh);
         env->DeleteLocalRef(javaClass);
     }
 }
@@ -56,17 +56,17 @@ Mat frameDiff(Mat prevFrame, Mat curFrame, Mat nextFrame) {
 Mat preVideoFrame, curVideoFrame, nextVideoFrame;
 Mat dist, blurDist, threDist, meanDist, stdDist;
 
-bool processFrame(Mat curFrame) {
-    bool isMotionDetection = false;
+int processFrame(Mat curFrame) {
+    int motionThresh = 0;
     if (preVideoFrame.empty()) {
         curFrame.copyTo(preVideoFrame);
-        LOGI("processFrame preVideoFrame:---->", "");
-        return isMotionDetection;
+        LOGI("processFrame preVideoFrame:---->");
+        return motionThresh;
     }
     if (curVideoFrame.empty()) {
         curFrame.copyTo(curVideoFrame);
-        LOGI("processFrame curVideoFrame:---->", "");
-        return isMotionDetection;
+        LOGI("processFrame curVideoFrame:---->");
+        return motionThresh;
     }
     curFrame.copyTo(nextVideoFrame);
 
@@ -91,9 +91,9 @@ bool processFrame(Mat curFrame) {
 
         if (stdDist.at<uchar>(0, 0) > MOTION_THRESH) {
 //            printf("%d motion detected\r", stdDist.at<uchar>(0, 0));
-            LOGI("%d motion detected\r", stdDist.at<uchar>(0, 0));
+            motionThresh = stdDist.at<uchar>(0, 0);
+            LOGI("%d motion detected\r", motionThresh);
 //            fflush(stdout);
-            isMotionDetection = true;
         }
 //        blurDist.copyTo(curFrame);
         curVideoFrame.copyTo(preVideoFrame);
@@ -101,7 +101,6 @@ bool processFrame(Mat curFrame) {
     } else {
         LOGI("processFrame empty:---->p:%d", preVideoFrame.empty());
     }
-
-    return isMotionDetection;
+    return motionThresh;
 }
 

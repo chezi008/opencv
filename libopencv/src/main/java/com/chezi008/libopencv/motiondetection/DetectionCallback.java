@@ -9,5 +9,5 @@ public interface DetectionCallback {
     /**
      * 检测到运动
      */
-    void motionDetection();
+    void motionDetection(int motionThresh);
 }
